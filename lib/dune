@@ -1,0 +1,6 @@
+(library
+ (name backtest_stats)
+ (public_name backtest-stats)
+ (libraries core yojson)
+ (preprocess
+  (pps ppx_jane)))
