@@ -2,3 +2,4 @@
 
 module Dist = Dist
 module Series = Series
+module Bootstrap = Bootstrap
