@@ -1,0 +1,7 @@
+((min_periods 250)
+ (min_out_of_sample_fraction 0.3)
+ (min_psr 0.95)
+ (min_out_of_sample_psr 0.9)
+ (min_dsr 0.9)
+ (max_pbo 0.2)
+ (max_spa_p_value 0.05))
