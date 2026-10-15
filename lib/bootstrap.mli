@@ -30,7 +30,7 @@ end
 val default_block_length : int -> int
 
 (** [fill_indices scheme ~rng dst] writes [Array.length dst] resampled indices, each in
-    [0, length dst). It does not allocate. *)
+    from 0 to [Array.length dst - 1]. It does not allocate. *)
 val fill_indices : Scheme.t -> rng:Random.State.t -> int array -> unit
 
 (** [indices scheme ~rng ~n] is a fresh array of [n] resampled indices. *)

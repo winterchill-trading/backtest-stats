@@ -10,17 +10,18 @@ open! Core
 
 module Policy : sig
   (** Every field is optional in the sexp form; an absent threshold is not checked.
-      Probabilities are fractions in [0, 1]; [psr_benchmark_sharpe] is per period.
+      Probabilities are fractions in [0, 1]; [psr_benchmark_sharpe] is a per-period Sharpe
+      ratio that {!Report.create} measures the PSR against.
 
       {v
-((min_periods 500)
- (min_out_of_sample_fraction 0.3)
- (min_psr 0.95)
- (min_out_of_sample_psr 0.9)
- (min_dsr 0.9)
- (max_pbo 0.2)
- (max_spa_p_value 0.05)
- (max_drawdown 0.25))
+      ((min_periods 500)
+       (min_out_of_sample_fraction 0.3)
+       (min_psr 0.95)
+       (min_out_of_sample_psr 0.9)
+       (min_dsr 0.9)
+       (max_pbo 0.2)
+       (max_spa_p_value 0.05)
+       (max_drawdown 0.25))
       v} *)
   type t =
     { min_periods : int
