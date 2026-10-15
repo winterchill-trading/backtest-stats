@@ -1,0 +1,9 @@
+(library
+ (name backtest_stats_test)
+ (package backtest-stats)
+ (libraries backtest-stats core base_quickcheck)
+ (inline_tests
+  (flags
+   (:standard -source-tree-root .)))
+ (preprocess
+  (pps ppx_jane)))
