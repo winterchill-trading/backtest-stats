@@ -90,3 +90,15 @@ let%test_unit "resampling preserves total compounded growth" =
       and b = Series.compound (Series.returns r) in
       [%test_pred: float] (fun d -> Float.( < ) d 1e-9) (Float.abs (a -. b)))
 ;;
+
+let%expect_test "periods per year from the spacing" =
+  let ppy step =
+    Series.infer_periods_per_year (Series.of_returns ~step (Array.create ~len:10 0.))
+  in
+  printf
+    "%.2f %.2f %.2f\n"
+    (ppy Time_ns.Span.day)
+    (ppy Time_ns.Span.hour)
+    (ppy (Time_ns.Span.of_day 7.));
+  [%expect {| 365.25 8766.00 52.18 |}]
+;;

@@ -64,5 +64,11 @@ val log_returns : t -> float array
     [start] (default 1). It has [length t] points and does not include [start]. *)
 val equity_curve : ?start:float -> t -> float array
 
+(** [infer_periods_per_year t] is 365.25 days over the median spacing between consecutive
+    times: 365.25 for daily data on a calendar that includes weekends, 8766 for hourly.
+    Pass the number explicitly for a trading-day calendar (252 for daily equity data).
+    Raises on fewer than two periods. *)
+val infer_periods_per_year : t -> float
+
 (** Same times, new returns (used by resamplers). Raises if the lengths differ. *)
 val with_returns : t -> float array -> t

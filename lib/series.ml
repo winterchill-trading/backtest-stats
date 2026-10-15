@@ -148,3 +148,19 @@ let with_returns t returns =
   then raise_s [%message "Series.with_returns: length differs"];
   { t with returns }
 ;;
+
+let infer_periods_per_year t =
+  let n = length t in
+  if n < 2 then raise_s [%message "Series.infer_periods_per_year: need two periods"];
+  let gaps =
+    Array.init (n - 1) ~f:(fun i ->
+      Time_ns.Span.to_day (Time_ns.diff t.times.(i + 1) t.times.(i)))
+  in
+  Array.sort gaps ~compare:Float.compare;
+  let median =
+    if (n - 1) % 2 = 1
+    then gaps.((n - 1) / 2)
+    else (gaps.(((n - 1) / 2) - 1) +. gaps.((n - 1) / 2)) /. 2.
+  in
+  365.25 /. median
+;;
