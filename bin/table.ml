@@ -97,7 +97,9 @@ let of_csv path =
 let of_parquet path =
   Parquet.Reader.with_file path ~f:(fun r ->
     let schema = Parquet.Reader.columns r in
-    let names = List.map schema ~f:(fun (c : Parquet.Metadata.Schema_element.t) -> c.name) in
+    let names =
+      List.map schema ~f:(fun (c : Parquet.Metadata.Schema_element.t) -> c.name)
+    in
     let%bind.Or_error rows =
       Parquet.Reader.fold_rows r ~init:[] ~f:(fun acc row -> row :: acc)
       |> Or_error.map ~f:(fun l -> Array.of_list (List.rev l))
@@ -110,13 +112,14 @@ let of_parquet path =
         Or_error.error_s
           [%message "not a number" (name : string) (v : Parquet.Reader.Value.t)]
     in
-    (* An integer time column's unit comes from its logical (or legacy converted)
-       type; without one, from the size of the numbers. *)
+    (* An integer time column's unit comes from its logical (or legacy converted) type;
+       without one, from the size of the numbers. *)
     let int_to_time (c : Parquet.Metadata.Schema_element.t) i =
       let ns k = Time_ns.of_int_ns_since_epoch (i * k) in
       match c.logical_type, c.converted_type with
       | Some Date, _ | _, Some Date -> ns 86_400_000_000_000
-      | Some (Timestamp { unit = Millis; _ }), _ | _, Some Timestamp_millis -> ns 1_000_000
+      | Some (Timestamp { unit = Millis; _ }), _ | _, Some Timestamp_millis ->
+        ns 1_000_000
       | Some (Timestamp { unit = Micros; _ }), _ | _, Some Timestamp_micros -> ns 1_000
       | Some (Timestamp { unit = Nanos; _ }), _ -> ns 1
       | _ -> time_of_int i
