@@ -1,0 +1,7 @@
+(executable
+ (name main)
+ (public_name backtest-stats)
+ (package backtest-stats)
+ (libraries backtest-stats core core_unix.command_unix parquet yojson)
+ (preprocess
+  (pps ppx_jane)))
