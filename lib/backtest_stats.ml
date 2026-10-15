@@ -5,3 +5,4 @@ module Series = Series
 module Bootstrap = Bootstrap
 module Metrics = Metrics
 module Multiple_testing = Multiple_testing
+module Var_backtest = Var_backtest
