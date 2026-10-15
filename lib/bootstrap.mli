@@ -5,8 +5,7 @@
     - [Circular_block]: concatenate blocks of a fixed length starting at uniform
       positions, wrapping around the end of the sample.
     - [Stationary]: blocks of geometric length with the given mean (the stationary
-      bootstrap of Politis and Romano), also wrapping; the resampled series is itself
-      stationary.
+      bootstrap), also wrapping; the resampled series is itself stationary.
 
     A sampler returns indices into the original sample, so several series observed over
     the same periods (the rows of a strategy-by-period matrix) are resampled jointly by
