@@ -1,7 +1,7 @@
 (library
  (name backtest_stats_test)
  (package backtest-stats)
- (libraries backtest-stats core base_quickcheck)
+ (libraries backtest-stats core base_quickcheck yojson)
  (inline_tests
   (flags
    (:standard -source-tree-root .)))
