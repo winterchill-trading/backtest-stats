@@ -202,3 +202,31 @@ let%test_unit "psr at the track record length reaches the confidence" =
       in
       assert (Float.( >= ) psr (0.9 -. 1e-9)))
 ;;
+
+let words f =
+  let before = Gc.minor_words () in
+  ignore (Sys.opaque_identity (f ()) : float);
+  Gc.minor_words () - before
+;;
+
+(* The loops keep their float accumulators unboxed, so allocation does not grow with the
+   length of the series. Only an upper bound is pinned: the few words of boxed results
+   differ between macOS arm64 and Linux amd64 builds. *)
+let%expect_test "allocation does not grow with the series length" =
+  let short = Array.init 100 ~f:(fun i -> Float.of_int (i % 7) /. 100.) in
+  let long = Array.init 10_000 ~f:(fun i -> Float.of_int (i % 7) /. 100.) in
+  List.iter
+    [ "sharpe", Metrics.sharpe ?risk_free:None
+    ; "probabilistic_sharpe", Metrics.probabilistic_sharpe ?benchmark:None
+    ; "sortino", Metrics.sortino ?target:None
+    ]
+    ~f:(fun (name, f) ->
+      let a = words (fun () -> f short)
+      and b = words (fun () -> f long) in
+      printf "%s %b\n" name (a = b && b < 100));
+  [%expect {|
+    sharpe true
+    probabilistic_sharpe true
+    sortino true
+    |}]
+;;
