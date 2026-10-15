@@ -7,3 +7,5 @@ module Metrics = Metrics
 module Multiple_testing = Multiple_testing
 module Var_backtest = Var_backtest
 module Gate = Gate
+module Json = Json
+module Report = Report
