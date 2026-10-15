@@ -5,14 +5,24 @@ let euler_mascheroni = 0.5772156649015329
 let mean xs =
   let n = Array.length xs in
   if n = 0 then raise_s [%message "Metrics.mean: empty series"];
-  Array.fold xs ~init:0. ~f:( +. ) /. Float.of_int n
+  (* for loops over [let mutable] floats keep the accumulators unboxed; a fold with a
+     closure allocates a boxed float per element *)
+  let mutable s = 0. in
+  for i = 0 to n - 1 do
+    s <- s +. Array.unsafe_get xs i
+  done;
+  s /. Float.of_int n
 ;;
 
 let std xs =
   let n = Array.length xs in
   if n < 2 then raise_s [%message "Metrics.std: need at least two observations" (n : int)];
   let m = mean xs in
-  let ss = Array.fold xs ~init:0. ~f:(fun acc x -> acc +. ((x -. m) *. (x -. m))) in
+  let mutable ss = 0. in
+  for i = 0 to n - 1 do
+    let d = Array.unsafe_get xs i -. m in
+    ss <- ss +. (d *. d)
+  done;
   Float.sqrt (ss /. Float.of_int (n - 1))
 ;;
 
@@ -31,19 +41,20 @@ module Moments = struct
     if n < 2
     then raise_s [%message "Metrics.Moments: need at least two observations" (n : int)];
     let m = mean xs in
-    let m2 = ref 0.
-    and m3 = ref 0.
-    and m4 = ref 0. in
-    Array.iter xs ~f:(fun x ->
-      let d = x -. m in
+    let mutable s2 = 0. in
+    let mutable s3 = 0. in
+    let mutable s4 = 0. in
+    for i = 0 to n - 1 do
+      let d = Array.unsafe_get xs i -. m in
       let d2 = d *. d in
-      m2 := !m2 +. d2;
-      m3 := !m3 +. (d2 *. d);
-      m4 := !m4 +. (d2 *. d2));
+      s2 <- s2 +. d2;
+      s3 <- s3 +. (d2 *. d);
+      s4 <- s4 +. (d2 *. d2)
+    done;
     let nf = Float.of_int n in
-    let m2 = !m2 /. nf
-    and m3 = !m3 /. nf
-    and m4 = !m4 /. nf in
+    let m2 = s2 /. nf
+    and m3 = s3 /. nf
+    and m4 = s4 /. nf in
     { n
     ; mean = m
     ; std = Float.sqrt (m2 *. nf /. (nf -. 1.))
@@ -69,14 +80,14 @@ let autocorrelation xs ~lag =
   then
     raise_s [%message "Metrics.autocorrelation: lag out of range" (lag : int) (n : int)];
   let m = mean xs in
-  let num = ref 0.
-  and den = ref 0. in
+  let mutable num = 0. in
+  let mutable den = 0. in
   for t = 0 to n - 1 do
     let d = xs.(t) -. m in
-    den := !den +. (d *. d);
-    if t >= lag then num := !num +. (d *. (xs.(t - lag) -. m))
+    den <- den +. (d *. d);
+    if t >= lag then num <- num +. (d *. (xs.(t - lag) -. m))
   done;
-  !num /. !den
+  num /. den
 ;;
 
 let sharpe ?(risk_free = 0.) xs = (mean xs -. risk_free) /. std xs
@@ -104,12 +115,12 @@ let adjusted_sharpe ?risk_free xs =
 
 let sortino ?(target = 0.) xs =
   let n = Array.length xs in
-  let dd =
-    Array.fold xs ~init:0. ~f:(fun acc r ->
-      let d = Float.min 0. (r -. target) in
-      acc +. (d *. d))
-  in
-  let dd = Float.sqrt (dd /. Float.of_int n) in
+  let mutable acc = 0. in
+  for i = 0 to n - 1 do
+    let d = Float.min 0. (Array.unsafe_get xs i -. target) in
+    acc <- acc +. (d *. d)
+  done;
+  let dd = Float.sqrt (acc /. Float.of_int n) in
   let excess = mean xs -. target in
   if Float.( = ) dd 0.
   then if Float.( > ) excess 0. then Float.infinity else Float.nan
@@ -190,32 +201,34 @@ module Drawdown = struct
 
   let of_returns xs =
     let n = Array.length xs in
-    let value = ref 1.
-    and peak = ref 1.
-    and max_dd = ref 0.
-    and run = ref 0
-    and max_run = ref 0
-    and sum = ref 0.
-    and sum_sq = ref 0.
-    and dd = ref 0. in
-    Array.iter xs ~f:(fun r ->
-      value := !value *. (1. +. r);
-      if Float.( >= ) !value !peak
+    let mutable value = 1. in
+    let mutable peak = 1. in
+    let mutable max_dd = 0. in
+    let mutable run = 0 in
+    let mutable max_run = 0 in
+    let mutable sum = 0. in
+    let mutable sum_sq = 0. in
+    let mutable dd = 0. in
+    for i = 0 to n - 1 do
+      value <- value *. (1. +. Array.unsafe_get xs i);
+      if Float.( >= ) value peak
       then (
-        peak := !value;
-        run := 0)
-      else incr run;
-      dd := 1. -. (!value /. !peak);
-      max_dd := Float.max !max_dd !dd;
-      max_run := Int.max !max_run !run;
-      sum := !sum +. !dd;
-      sum_sq := !sum_sq +. (!dd *. !dd));
+        peak <- value;
+        run <- 0)
+      else run <- run + 1;
+      dd <- 1. -. (value /. peak);
+      (* a comparison instead of [Float.max], whose call boxes its result *)
+      if Float.( > ) dd max_dd then max_dd <- dd;
+      if run > max_run then max_run <- run;
+      sum <- sum +. dd;
+      sum_sq <- sum_sq +. (dd *. dd)
+    done;
     let nf = Float.of_int (Int.max 1 n) in
-    { max_drawdown = !max_dd
-    ; max_duration = !max_run
-    ; current = !dd
-    ; mean = !sum /. nf
-    ; ulcer_index = Float.sqrt (!sum_sq /. nf)
+    { max_drawdown = max_dd
+    ; max_duration = max_run
+    ; current = dd
+    ; mean = sum /. nf
+    ; ulcer_index = Float.sqrt (sum_sq /. nf)
     }
   ;;
 
