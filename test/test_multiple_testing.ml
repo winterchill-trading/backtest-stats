@@ -21,27 +21,41 @@ let%expect_test "adjusted p-values match statsmodels multipletests" =
     |}]
 ;;
 
+(* Statistics printed to 6 decimals: the sums of logs and cosines behind the simulated
+   returns differ in the last bit between macOS arm64 and Linux amd64. *)
+let print_rc (r : M.Reality_check.t) =
+  printf "reality check: statistic %.6f p %.3f best %d\n" r.statistic r.p_value r.best
+;;
+
+let print_spa (r : M.Spa.t) =
+  printf
+    "spa: statistic %.6f p lower %.3f consistent %.3f upper %.3f best %d\n"
+    r.statistic
+    r.p_value_lower
+    r.p_value_consistent
+    r.p_value_upper
+    r.best
+;;
+
 let%expect_test "reality check and SPA: no edge, then one planted edge" =
   let rng = Random.State.make [| 1 |] in
   let noise = Sim.noise_matrix rng ~strategies:20 ~periods:500 ~std:0.01 in
   let rc = M.Reality_check.run ~rng:(Random.State.make [| 2 |]) noise in
   let spa = M.Spa.run ~rng:(Random.State.make [| 2 |]) noise in
-  print_s [%sexp (rc : M.Reality_check.t)];
-  print_s [%sexp (spa : M.Spa.t)];
+  print_rc rc;
+  print_spa spa;
   let edge = Array.copy noise in
   edge.(7) <- Sim.returns rng ~n:500 ~mean:0.002 ~std:0.01;
   let rc = M.Reality_check.run ~rng:(Random.State.make [| 2 |]) edge in
   let spa = M.Spa.run ~rng:(Random.State.make [| 2 |]) edge in
-  print_s [%sexp (rc : M.Reality_check.t)];
-  print_s [%sexp (spa : M.Spa.t)];
+  print_rc rc;
+  print_spa spa;
   [%expect
     {|
-    ((statistic 0.017315900584672337) (p_value 0.438) (best 8) (samples 1000))
-    ((statistic 1.8637044325325254) (p_value_lower 0.236)
-     (p_value_consistent 0.397) (p_value_upper 0.413) (best 8) (samples 1000))
-    ((statistic 0.059251277703719706) (p_value 0) (best 7) (samples 1000))
-    ((statistic 6.0975798742114726) (p_value_lower 0) (p_value_consistent 0)
-     (p_value_upper 0) (best 7) (samples 1000))
+    reality check: statistic 0.017316 p 0.438 best 8
+    spa: statistic 1.863704 p lower 0.236 consistent 0.397 upper 0.413 best 8
+    reality check: statistic 0.059251 p 0.000 best 7
+    spa: statistic 6.097580 p lower 0.000 consistent 0.000 upper 0.000 best 7
     |}]
 ;;
 
